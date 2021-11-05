@@ -24,9 +24,7 @@ help_text () {
 	 -h	 show this help text
 	 -d	 download episode
 	 -H	 continue where you left off
-	 -D	 delete history
 	 -q	 set video quality (best/worst/360/480/720/..)
-	 --dub  play the dub version if present
 	EOF
 }
 
@@ -72,8 +70,7 @@ get_embedded_video_link() {
 	ep_no=$2
 
 	# credits to fork: https://github.com/Dink4n/ani-cli for the fix
-	# dub prefix takes the value "-dub" when dub is needed else is empty
-	curl -s "https://gogoanime.pe/$anime_id${dub_prefix}-episode-$ep_no" |
+	curl -s "https://gogoanime.pe/$anime_id-episode-$ep_no" |
 	sed -n -E '
 		/^[[:space:]]*<a href="#" rel="100"/{
 		s/.*data-video="([^"]*)".*/https:\1/p
@@ -220,13 +217,12 @@ open_episode () {
 
 	# Cool way of clearing screen
 	tput reset
-	while [ "$episode" -lt 1 ] || [ "$episode" -gt "$last_ep_number" ]
-	do
+	if [ $episode -lt 1 ] || [ $episode -gt $last_ep_number ]; then
 		err "Episode out of range"
 		printf "${c_blue}Choose episode $c_cyan[1-%d]$c_reset:$c_green " $last_ep_number
 		read episode
 		printf "$c_reset"
-	done
+	fi
 
 	printf "Getting data for episode %d\n" $episode
 
@@ -252,15 +248,15 @@ open_episode () {
 			s/^${selection_id}\t[0-9]+/${selection_id}\t$((episode+1))/
 		" "$logfile" > "${logfile}.new" && mv "${logfile}.new" "$logfile"
 
-		setsid -f $player_fn --http-header-fields="Referer: $embedded_video_url" "$video_url" >/dev/null 2>&1
+		/usr/local/opt/util-linux/bin/setsid -f $player_fn --vo=tct --http-header-fields="Referer: $embedded_video_url" "$video_url" >/dev/null 2>&1
 	else
 		printf "Downloading episode $episode ...\n"
 		printf "%s\n" "$video_url"
 		# add 0 padding to the episode name
 		episode=$(printf "%03d" $episode)
 		{
-			ffmpeg -headers "Referer: $embedded_video_url" -i "$video_url" \
-				-c copy "${anime_id}-${episode}.mkv" >/dev/null 2>&1 &&
+			curl -L -# -C - "$video_url" -G -e 'https://streamani.io/' \
+				-o "${anime_id}-${episode}.mp4" "$video_url" >/dev/null 2>&1 &&
 				printf "${c_green}Downloaded episode: %s${c_reset}\n" "$episode" ||
 				printf "${c_red}Download failed episode: %s${c_reset}\n" "$episode"
 		}
@@ -280,7 +276,7 @@ dep_ch "$player_fn" "curl" "sed" "grep"
 is_download=0
 quality=best
 scrape=query
-while getopts 'hdHDq:-:' OPT; do
+while getopts 'hdHq:' OPT; do
 	case $OPT in
 		h)
 			help_text
@@ -292,20 +288,8 @@ while getopts 'hdHDq:-:' OPT; do
 		H)
 			scrape=history
 			;;
-
-		D)
-			: > "$logfile"
-			exit 0
-			;;
 		q)
 			quality=$OPTARG
-			;;
-		-)
-			case $OPTARG in
-				dub)
-					dub_prefix="-dub"
-					;;
-			esac
 			;;
 	esac
 done
