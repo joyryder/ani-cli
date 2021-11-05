@@ -5,7 +5,7 @@
 player_fn="mpv"
 
 prog="ani-cli"
-logfile="${XDG_CACHE_HOME:-$HOME/.cache}/ani-hsts"
+logfile="/Users/shrifrai/ani-cli/ani-hsts"
 
 c_red="\033[1;31m"
 c_green="\033[1;32m"
@@ -248,7 +248,7 @@ open_episode () {
 			s/^${selection_id}\t[0-9]+/${selection_id}\t$((episode+1))/
 		" "$logfile" > "${logfile}.new" && mv "${logfile}.new" "$logfile"
 
-		/usr/local/opt/util-linux/bin/setsid -f $player_fn --vo=tct --http-header-fields="Referer: $embedded_video_url" "$video_url" >/dev/null 2>&1
+		setsid -f $player_fn --http-header-fields="Referer: $embedded_video_url" "$video_url" >/dev/null 2>&1
 	else
 		printf "Downloading episode $episode ...\n"
 		printf "%s\n" "$video_url"
