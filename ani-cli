@@ -43,7 +43,7 @@ search_anime () {
 	search=$(printf '%s' "$1" | tr ' ' '-' )
 	titlepattern='<a href="/category/'
 
-	curl -s "https://gogoanime.pe//search.html" \
+	curl -s "https://gogoanime.cm//search.html" \
 		-G \
 		-d "keyword=$search" |
 	sed -n -E '
